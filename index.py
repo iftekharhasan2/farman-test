@@ -86,7 +86,7 @@ def build_schedule(day, weight, animal):
     if animal == "cow":
         return [
             {
-                "phase": "morning",
+                "phase": "সকাল",
                 "tasks": [
                     {"description": "গোয়াল ঘর পরিষ্কার করুন, চারি পরিষ্কার করুন, গরুর পা হাঁটু পর্যন্ত ধুয়ে দিন", "time_range": "সকাল ৬ঃ০০ - ৭ঃ০০"},
                     {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি)", "time_range": "সকাল ৭ঃ০০ - ৮ঃ০০"},
@@ -96,7 +96,7 @@ def build_schedule(day, weight, animal):
                 ]
             },
             {
-                "phase": "midday",
+                "phase": "দুপুর",
                 "tasks": [
                     {"description": "পানি দিয়ে চারি ধুয়ে দিন, গোয়াল ঘর পরিষ্কার করুন", "time_range": "সকাল ১১ঃ০০ - ১২ঃ০০"},
                     {"description": "গরুকে গোসল করিয়ে দিন (গরমে প্রতিদিন, শীতে ২ দিনে একবার)", "time_range": "দুপুর ১২ঃ০০ - ১ঃ০০"},
@@ -104,7 +104,7 @@ def build_schedule(day, weight, animal):
                 ]
             },
             {
-                "phase": "afternoon",
+                "phase": "বিকাল",
                 "tasks": [
                     {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি)", "time_range": "বিকাল ৩ঃ০০ - ৪ঃ০০"},
                     {"description": f"দানাদার খাদ্য খাওয়ান {feed_level(weight, animal)} কেজি", "time_range": "বিকাল ৪ঃ০০ - ৫ঃ০০"},
@@ -113,7 +113,7 @@ def build_schedule(day, weight, animal):
                 ]
             },
             {
-                "phase": "evening",
+                "phase": "সন্ধ্যা",
                 "tasks": [
                     {"description": "গোয়াল ঘর পরিষ্কার করুন, রাতের জন্য কয়েল জ্বালিয়ে দিন, চারি পরিষ্কার করে পানি দিন", "time_range": "সন্ধ্যা ৭ঃ০০ - ৮ঃ০০"}
                 ]
@@ -246,8 +246,8 @@ def new_project():
             "purchase_date": request.form["purchase_date"],
             "weight": float(request.form["weight"]),
             "feed_level": feed_level(float(request.form["weight"]), request.form["type"]),
-            "target": 24 if request.form["type"] == "goat" else 350,
-            "check_period": 30 if request.form["type"] == "cow" else 1,
+            "target": float(request.form["weight"])+10 if request.form["type"] == "goat" else float(request.form["weight"])+120,
+            "check_period": 30,
             "task_done": {},
             "task_photo": {},
         }
