@@ -272,10 +272,6 @@ def delete_project(pid):
 
 @app.route("/projects/<pid>/weight", methods=["POST"])
 def update_weight(pid):
-    user_id = session.get("user_id")
-    if not user_id:
-        flash("Please login first.", "warning")
-        return redirect(url_for("login"))
 
     weight = float(request.form.get("weight", 0))
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
@@ -293,10 +289,6 @@ def update_weight(pid):
 @app.route("/projects/<pid>/tasks/save", methods=["POST"])
 def save_tasks(pid):
     user_id = session.get("user_id")
-    if not user_id:
-        flash("Please login first.", "warning")
-        return redirect(url_for("login"))
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
@@ -318,9 +310,6 @@ def save_tasks(pid):
 @app.route("/projects/<pid>/photos/upload", methods=["POST"])
 def upload_photos(pid):
     user_id = session.get("user_id")
-    if not user_id:
-        flash("Please login first.", "warning")
-        return redirect(url_for("login"))
 
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
