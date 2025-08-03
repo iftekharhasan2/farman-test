@@ -6,12 +6,16 @@ import signal
 import sys
 import re
 from werkzeug.utils import secure_filename
-from flask import Flask, request, session, redirect, url_for, render_template, flash
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from gridfs import GridFS
 import bcrypt
 from dotenv import load_dotenv
+from flask import Flask, jsonify, request, redirect, url_for, flash, render_template, make_response
+from flask_jwt_extended import (
+    JWTManager, create_access_token, jwt_required,
+    get_jwt_identity, set_access_cookies, unset_jwt_cookies, get_jwt
+)
 
 load_dotenv()
 
@@ -19,15 +23,20 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
 
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['JWT_COOKIE_SECURE'] = False  # Set True if using HTTPS in production
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # Enable in production for CSRF protection
+
+jwt = JWTManager(app)
+
 mongo = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
 db = mongo["mydatabase"]
 users_col = db["users"]
 proj_col = db["projects"]
 fs = GridFS(db)
 
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif"}
-
 PHONE_RE = re.compile(r'^\+?[0-9]{11,15}$')
 
 def valid_phone(p):
@@ -156,94 +165,82 @@ def build_schedule(day, weight, animal):
 def index():
     return render_template("index.html")
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+        phone = request.form["phone"].strip()
+
+        if not valid_phone(phone):
+            flash("সঠিক ফোন নম্বর দিন!", "warning")
+            return redirect(url_for("register"))
+
+        if users_col.find_one({"phone": phone}):
+            flash("এই ফোন নম্বর আগে ব্যবহার হেছে!", "warning")
+            return redirect(url_for("register"))
+
+        pw_hash = bcrypt.hashpw(request.form["password"].encode(), bcrypt.gensalt())
+        user_id = users_col.insert_one({
+            "name": name,
+            "phone": phone,
+            "password": pw_hash
+        }).inserted_id
+
+        access_token = create_access_token(identity=str(user_id))
+
+        resp = make_response(redirect(url_for("projects")))
+        set_access_cookies(resp, access_token)
+
+        flash("অ্যাকাউন্ট তৈরি হেছে!", "success")
+        return resp
+
+    return render_template("register.html")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         phone = request.form["phone"].strip()
         pwd = request.form["password"]
         user = users_col.find_one({"phone": phone})
+
         if user and bcrypt.checkpw(pwd.encode(), user["password"]):
-            session["user_id"] = str(user["_id"])
-            if user.get("role") == "admin":
-                session["admin"] = True
-                return redirect(url_for("admin_dashboard"))
+            user_id = str(user["_id"])
+            role = user.get("role", "user")
+
+            access_token = create_access_token(identity=user_id, additional_claims={"role": role})
+
+            resp = make_response(redirect(url_for("projects")))
+            set_access_cookies(resp, access_token)
+
             flash("স্বাগতম!", "success")
-            return redirect(url_for("projects"))
+            return resp
+
         flash("ফোন নম্বর অথবা পাসওয়ার্ড ভুল!", "danger")
+
     return render_template("login.html")
-
-@app.route("/register", methods=["GET", "POST"])
-def register():
-    if request.method == "POST":
-        name = request.form["name"].strip()
-        phone = request.form["phone"].strip()
-        if not valid_phone(phone):
-            flash("সঠিক ফোন নম্বর দিন!", "warning")
-            return redirect(url_for("register"))
-        if users_col.find_one({"phone": phone}):
-            flash("এই ফোন নম্বর আগে ব্যবহার হেছে!", "warning")
-            return redirect(url_for("register"))
-        pw_hash = bcrypt.hashpw(request.form["password"].encode(), bcrypt.gensalt())
-        user_id = users_col.insert_one({"name": name, "phone": phone, "password": pw_hash}).inserted_id
-        session["user_id"] = str(user_id)
-        flash("অ্যাকাউন্ট তৈরি হেছে!", "success")
-        return redirect(url_for("projects"))
-    return render_template("register.html")
-
-@app.route("/admin/dashboard", methods=["GET", "POST"])
-def admin_dashboard():
-    if not session.get("admin"):
-        return render_template("login.html")
-    projects = list(proj_col.find())
-    for p in projects:
-        p["days"] = days_since(p["purchase_date"])
-        p["schedule"] = build_schedule(p["days"], p["weight"], p["type"])
-    return render_template("admin02.html", zip=zip, projects=projects)
-
-@app.route("/admin/logout")
-def admin_logout():
-    session.pop("admin", None)
-    flash("Admin logged out.", "info")
-    return redirect(url_for("login"))
-
-@app.route("/admin/users")
-def admin_users():
-    if not session.get("admin"):
-        return redirect(url_for("login"))
-    users = list(users_col.find({}, {"password": 0}))
-    return render_template("admin_users.html", users=users)
-
-@app.route("/admin/user/<uid>")
-def admin_user_detail(uid):
-    if not session.get("admin"):
-        return redirect(url_for("login"))
-    user = users_col.find_one({"_id": ObjectId(uid)})
-    if not user:
-        flash("User not found", "danger")
-        return redirect(url_for("admin_users"))
-    projects = list(proj_col.find({"owner": uid}))
-    for p in projects:
-        p["days"] = days_since(p["purchase_date"])
-        p["schedule"] = build_schedule(p["days"], p["weight"], p["type"])
-    return render_template("admin_user_detail.html", user=user, projects=projects)
 
 @app.route("/logout")
 def logout():
-    session.clear()
+    resp = make_response(redirect(url_for("login")))
+    unset_jwt_cookies(resp)
     flash("Logged out!", "info")
-    return redirect(url_for("login"))
+    return resp
 
 @app.route("/projects")
+@jwt_required()
 def projects():
-    projs = list(proj_col.find({"owner": session["user_id"]}))
+    user_id = get_jwt_identity()
+    projs = list(proj_col.find({"owner": user_id}))
     days_map = {str(p["_id"]): days_since(p["purchase_date"]) for p in projs}
     return render_template("projects.html", projects=projs, days=days_map, str=str)
 
 @app.route("/projects/new", methods=["GET", "POST"])
+@jwt_required()
 def new_project():
-    if request.method == "POST": 
-         doc = {
-            "owner": session["user_id"],
+    if request.method == "POST":
+        user_id = get_jwt_identity()
+        doc = {
+            "owner": user_id,
             "name": request.form["name"].strip(),
             "type": request.form["type"],
             "purchase_date": request.form["purchase_date"],
@@ -253,15 +250,17 @@ def new_project():
             "check_period": 30 if request.form["type"] == "cow" else 1,
             "task_done": {},
             "task_photo": {},
-         }
-         proj_col.insert_one(doc)
-         flash("Project created!", "success")
-         return redirect(url_for("projects"))
+        }
+        proj_col.insert_one(doc)
+        flash("Project created!", "success")
+        return redirect(url_for("projects"))
     return render_template("new_project.html")
 
 @app.route("/projects/<pid>/dashboard")
+@jwt_required()
 def dashboard(pid):
-    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
+    user_id = get_jwt_identity()
+    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Not found!", "danger")
         return redirect(url_for("projects"))
@@ -283,42 +282,58 @@ def dashboard(pid):
     if "task_photo" not in proj:
         proj["task_photo"] = {}
 
-    return render_template("dashboard02.html", project=proj, schedule=schedule, days=days, show_weight_input=show_weight, days_left=days_left)
+    return render_template(
+        "dashboard02.html",
+        project=proj,
+        schedule=schedule,
+        days=days,
+        show_weight_input=show_weight,
+        days_left=days_left
+    )
 
-@app.route("/projects/<pid>/delete", methods=["POST"])
-def delete_project(pid):
-    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
-    if not proj:
-        flash("Project not found!", "danger")
-        return redirect(url_for("projects"))
+# @app.route("/projects/<pid>/delete", methods=["POST"])
+# @jwt_required()
+# def delete_project(pid):
+#     user_id = get_jwt_identity()
+#     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
+#     if not proj:
+#         flash("Project not found!", "danger")
+#         return redirect(url_for("projects"))
 
-    for task_idx, photo_ids in proj.get("task_photo", {}).items():
-        for photo_id in photo_ids:
-            try:
-                fs.delete(ObjectId(photo_id))
-            except:
-                pass  # photo might already be missing
+#     for photo_ids in proj.get("task_photo", {}).values():
+#         for photo_id in photo_ids:
+#             try:
+#                 fs.delete(ObjectId(photo_id))
+#             except Exception:
+#                 pass  # ignore if photo missing
 
-    proj_col.delete_one({"_id": ObjectId(pid)})
-    flash("Project and associated photos deleted!", "success")
-    return redirect(url_for("projects"))
+#     proj_col.delete_one({"_id": ObjectId(pid)})
+#     flash("Project and associated photos deleted!", "success")
+#     return redirect(url_for("projects"))
+
 
 @app.route("/projects/<pid>/weight", methods=["POST"])
+@jwt_required()
 def update_weight(pid):
+    user_id = get_jwt_identity()
     weight = float(request.form["weight"])
-    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
+    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
+
     proj_col.update_one({"_id": ObjectId(pid)}, {"$set": {"weight": weight}})
     new_level = feed_level(weight, proj["type"])
     proj_col.update_one({"_id": ObjectId(pid)}, {"$set": {"feed_level": new_level}})
     flash("Weight & feed level updated!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
+
 @app.route("/projects/<pid>/tasks/save", methods=["POST"])
+@jwt_required()
 def save_tasks(pid):
-    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
+    user_id = get_jwt_identity()
+    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
@@ -335,9 +350,12 @@ def save_tasks(pid):
     flash("Tasks updated!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
+
 @app.route("/projects/<pid>/photos/upload", methods=["POST"])
+@jwt_required()
 def upload_photos(pid):
-    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
+    user_id = get_jwt_identity()
+    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
@@ -370,16 +388,39 @@ def upload_photos(pid):
     flash(f"Uploaded {len(saved)} photo(s) to phase '{phase}'!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
+
 @app.route("/photos/<photo_id>")
+@jwt_required()
 def serve_photo(photo_id):
     try:
         file = fs.get(ObjectId(photo_id))
         return app.response_class(file.read(), mimetype=file.content_type)
-    except:
+    except Exception:
         return "File not found", 404
+@app.route("/projects/<pid>/delete", methods=["POST"])
+@jwt_required()
+def delete_project(pid):
+    user_id = get_jwt_identity()
+    proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
+    if not proj:
+        flash("Project not found!", "danger")
+        return redirect(url_for("projects"))
 
-# For ASGI deployments (e.g. Vercel)
-asgi_app = app
+    for photo_ids in proj.get("task_photo", {}).values():
+        for photo_id in photo_ids:
+            try:
+                fs.delete(ObjectId(photo_id))
+            except Exception:
+                pass
+
+    proj_col.delete_one({"_id": ObjectId(pid)})
+    flash("Project and associated photos deleted!", "success")
+    return redirect(url_for("projects"))
+
+# Similarly, implement other project related POST routes with JWT auth.
+
+
+
 
 def shutdown(signum, frame):
     logging.info("Shutting down …")
