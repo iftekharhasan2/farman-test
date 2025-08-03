@@ -38,7 +38,7 @@
       {% set progress_width = (project.weight / project.target * 100) | round(1) %}
       <div class="progress-bar bg-success"
            role="progressbar"
-           style="width: {{ progress_width }}%;" 
+           style="width: {{ progress_width }}%;"
            aria-valuenow="{{ project.weight }}"
            aria-valuemin="0"
            aria-valuemax="{{ project.target }}">
@@ -90,7 +90,7 @@
               <input type="hidden" class="phase-upload-phase" value="{{ phase }}">
               <label class="form-label small">এই ধাপের ছবি</label>
               <div class="input-group input-group-sm">
-                <input type="file" class="phase-upload-files" multiple accept="image/*" class="form-control">
+                <input type="file" class="phase-upload-files" multiple accept="image/*">
                 <button type="button" class="btn btn-outline-primary btn-sm phase-upload-btn">আপলোড</button>
               </div>
 
@@ -100,8 +100,8 @@
                 <div class="row g-1 mt-2 phase-preview">
                   {% for pic in photos %}
                     <div class="col-4">
-                      <a href="{{ url_for('static', filename='uploads/' + pic) }}" data-lightbox="{{ phase }}">
-                        <img src="{{ url_for('static', filename='uploads/' + pic) }}" class="img-fluid rounded">
+                      <a href="{{ url_for('serve_photo', photo_id=pic) }}" data-lightbox="{{ phase }}">
+                        <img src="{{ url_for('serve_photo', photo_id=pic) }}" class="img-fluid rounded">
                       </a>
                     </div>
                   {% endfor %}
@@ -136,6 +136,9 @@ document.addEventListener('click', e => {
 
   fetch("{{ url_for('upload_photos', pid=project._id) }}", {
     method: 'POST',
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem('access_token')}`
+    },
     body: fd
   })
   .then(r => {
