@@ -27,7 +27,7 @@
             <small>দিন: {{ days[str(p._id)] }} | ওজন: {{ p.weight }} কেজি</small>
           </div>
           {% if days[str(p._id)] <= 0 %}
-            <a href="{{ url_for('dashboard' pid=p._id)) }}" class="btn btn-sm btn-outline-primary">ড্যাশবোর্ড</a>
+            <a href="{{ url_for('wait') }}" class="btn btn-sm btn-outline-primary">ড্যাশবোর্ড</a>
           {% else %}
             <a href="{{ url_for('dashboard', pid=p._id) }}" class="btn btn-sm btn-outline-primary">ড্যাশবোর্ড</a>
           {% endif %}
