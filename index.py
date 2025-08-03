@@ -12,6 +12,7 @@ from bson.objectid import ObjectId
 from gridfs import GridFS
 import bcrypt
 from dotenv import load_dotenv
+from functools import wraps
 
 load_dotenv()
 
@@ -33,7 +34,7 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
 PHONE_RE = re.compile(r'^\+?[0-9]{11,15}$')
 
-# Utilities
+# --- Utilities ---
 
 def valid_phone(phone: str) -> bool:
     return PHONE_RE.fullmatch(phone) is not None
@@ -78,17 +79,101 @@ def grass_amount(weight: float, animal: str) -> float:
             return 17.5
         return 17.5
 
-def build_schedule(day: int, weight: float, animal: str):
-    # (same schedule as your original function, omitted here for brevity)
-    # Copy your existing build_schedule logic exactly here
-    # It returns a list of dicts with phases and tasks
-    # ... (copy your build_schedule code here exactly) ...
-    pass
+def build_schedule(day, weight, animal):
+    if animal == "cow":
+        return [
+            {
+                "phase": "morning",
+                "tasks": [
+                    {"description": "গোয়াল ঘর পরিষ্কার করুন, চারি পরিষ্কার করুন, গরুর পা হাঁটু পর্যন্ত ধুয়ে দিন", "time_range": "সকাল ৬ঃ০০ - ৭ঃ০০"},
+                    {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি)", "time_range": "সকাল ৭ঃ০০ - ৮ঃ০০"},
+                    {"description": f"দানাদার খাদ্য {feed_level(weight, animal)} কেজি + চিটাগুড় মিশ্রিত পানি খাওয়ান (৫ গ্রাম / ৫ লিটার)", "time_range": "সকাল ৮ঃ০০ - ৯ঃ০০"},
+                    {"description": "খড় খাওয়ান (চিটাগুড় মিশ্রিত পানি খড়ের উপর ছিটিয়ে দিন)", "time_range": "সকাল ৯ঃ০০ - ১০ঃ০০"},
+                    {"description": "প্রয়োজন অনুযায়ী সবুজ ঘাস প্রদান করুন", "time_range": "সকাল ১০ঃ০০ - ১১ঃ০০"},
+                ]
+            },
+            {
+                "phase": "midday",
+                "tasks": [
+                    {"description": "পানি দিয়ে চারি ধুয়ে দিন, গোয়াল ঘর পরিষ্কার করুন", "time_range": "সকাল ১১ঃ০০ - ১২ঃ০০"},
+                    {"description": "গরুকে গোসল করিয়ে দিন (গরমে প্রতিদিন, শীতে ২ দিনে একবার)", "time_range": "দুপুর ১২ঃ০০ - ১ঃ০০"},
+                    {"description": "চারিতে পরিষ্কার পানি দিন এবং গরুকে বিশ্রাম নিতে দিন", "time_range": "দুপুর ১ঃ০০ - ৩ঃ০০"},
+                ]
+            },
+            {
+                "phase": "afternoon",
+                "tasks": [
+                    {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি)", "time_range": "বিকাল ৩ঃ০০ - ৪ঃ০০"},
+                    {"description": f"দানাদার খাদ্য খাওয়ান {feed_level(weight, animal)} কেজি", "time_range": "বিকাল ৪ঃ০০ - ৫ঃ০০"},
+                    {"description": "খড় খাওয়ান (চিটাগুড় মিশ্রিত পানি খড়ের উপর ছিটিয়ে দিন)", "time_range": "বিকাল ৫ঃ০০ - ৬ঃ০০"},
+                    {"description": "প্রয়োজন অনুযায়ী সবুজ ঘাস প্রদান করুন", "time_range": "বিকাল ৬ঃ০০ - সন্ধ্যা ৬ঃ৪৫"},
+                ]
+            },
+            {
+                "phase": "evening",
+                "tasks": [
+                    {"description": "গোয়াল ঘর পরিষ্কার করুন, রাতের জন্য কয়েল জ্বালিয়ে দিন, চারি পরিষ্কার করে পানি দিন", "time_range": "সন্ধ্যা ৭ঃ০০ - ৮ঃ০০"}
+                ]
+            }
+        ]
 
+    elif animal == "goat":
+        return [
+            {
+                "phase": "morning",
+                "tasks": [
+                    {"description": "ছাগলের ঘর পরিষ্কার করুন, চারি পরিষ্কার করুন, ছাগলের পা হাঁটু পর্যন্ত ধুয়ে দিন", "time_range": "সকাল ৬ঃ০০ - ৭ঃ০০"},
+                    {"description": f"সবুজ ঘাস খাওয়ান {Grass(weight, animal)} কেজি", "time_range": "সকাল ৭ঃ০০ - ৮ঃ০০"},
+                    {"description": f"দানাদার খাদ্য {feed_level(weight, animal)} গ্রাম(একটি বাটিতে পরিমাপ করে দিন) + চিটাগুড় মিশ্রিত পানি (৫ গ্রাম / ৫ লিটার)", "time_range": "সকাল ৮ঃ০০ - ৯ঃ০০"},
+                    {"description": "খড় খাওয়ান (চিটাগুড় মিশ্রিত পানি খড়ের উপর ছিটিয়ে দিন)", "time_range": "সকাল ৯ঃ০০ - ১০ঃ০০"},
+                    {"description": "প্রয়োজন অনুযায়ী সবুজ ঘাস প্রদান করুন", "time_range": "সকাল ১০ঃ০০ - ১১ঃ০০"},
+                    {"description": "পানি দিয়ে চারি ধুয়ে দিন, ছাগলের ঘর পরিষ্কার করুন", "time_range": "সকাল ১১ঃ০০ - ১২ঃ০০"},
+                ]
+            },
+            {
+                "phase": "midday",
+                "tasks": [
+                    {"description": "চারিতে পরিষ্কার পানি দিন এবং ছাগলকে বিশ্রাম নিতে দিন", "time_range": "দুপুর ১ঃ০০ - ৩ঃ০০"},
+                    {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি", "time_range": "দুপুর ৩ঃ০০ - ৪ঃ০০"},
+                    {"description": f"দানাদার খাদ্য {feed_level(weight, animal)} গ্রাম", "time_range": "বিকাল ৪ঃ০০ - ৫ঃ০০"},
+                    {"description": "খড় খাওয়ান (চিটাগুড় মিশ্রিত পানি খড়ের উপর ছিটিয়ে দিন)", "time_range": "বিকাল ৫ঃ০০ - ৬ঃ০০"},
+                    {"description": "প্রয়োজন অনুযায়ী সবুজ ঘাস দিন", "time_range": "বিকাল ৬ঃ০০ - সন্ধ্যা ৬ঃ৪৫"},
+                ]
+            },
+            {
+                "phase": "evening",
+                "tasks": [
+                    {"description": "ছাগলের ঘর পরিষ্কার করুন, রাতের জন্য কয়েল জ্বালিয়ে দিন, চারি পরিষ্কার করে পানি দিন", "time_range": "সন্ধ্যা ৭ঃ০০ - ৮ঃ০০"},
+                ]
+            }
+        ]
 
-# Auth check decorator for admin pages
+    else:
+        return [
+            {
+                "phase": "default",
+                "tasks": [
+                    {"description": f"{animal} এর জন্য সাধারণ কাজ", "time_range": "–"}
+                ]
+            }
+        ]
+
+# --- Error-safety wrapper for routes ---
+
+def safe_route(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except Exception as e:
+            logging.error(f"Error in {f.__name__}: {e}", exc_info=True)
+            flash("An unexpected error occurred, please try again.", "danger")
+            return redirect(url_for("index"))
+    return decorated
+
+# --- Auth check decorator for admin pages ---
+
 def admin_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
         if not session.get("admin"):
@@ -97,14 +182,15 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
-# Routes
+# --- Routes ---
 
 @app.route("/")
+@safe_route
 def index():
     return render_template("index.html")
 
 @app.route("/login", methods=["GET", "POST"])
+@safe_route
 def login():
     if request.method == "POST":
         phone = request.form.get("phone", "").strip()
@@ -121,6 +207,7 @@ def login():
     return render_template("login.html")
 
 @app.route("/register", methods=["GET", "POST"])
+@safe_route
 def register():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -140,12 +227,14 @@ def register():
     return render_template("register.html")
 
 @app.route("/logout")
+@safe_route
 def logout():
     session.clear()
     flash("Logged out!", "info")
     return redirect(url_for("login"))
 
 @app.route("/admin/logout")
+@safe_route
 def admin_logout():
     session.pop("admin", None)
     flash("Admin logged out.", "info")
@@ -153,6 +242,7 @@ def admin_logout():
 
 @app.route("/admin/dashboard", methods=["GET"])
 @admin_required
+@safe_route
 def admin_dashboard():
     projects = list(proj_col.find())
     for p in projects:
@@ -162,12 +252,14 @@ def admin_dashboard():
 
 @app.route("/admin/users")
 @admin_required
+@safe_route
 def admin_users():
     users = list(users_col.find({}, {"password": 0}))
     return render_template("admin_users.html", users=users)
 
 @app.route("/admin/user/<uid>")
 @admin_required
+@safe_route
 def admin_user_detail(uid):
     user = users_col.find_one({"_id": ObjectId(uid)})
     if not user:
@@ -180,6 +272,7 @@ def admin_user_detail(uid):
     return render_template("admin_user_detail.html", user=user, projects=projects)
 
 @app.route("/projects")
+@safe_route
 def projects():
     user_id = session.get("user_id")
     if not user_id:
@@ -190,14 +283,25 @@ def projects():
     return render_template("projects.html", projects=projs, days=days_map, str=str)
 
 @app.route("/projects/new", methods=["GET", "POST"])
+@safe_route
 def new_project():
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Please login first.", "warning")
+        return redirect(url_for("login"))
+
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         animal_type = request.form.get("type")
         purchase_date = request.form.get("purchase_date")
-        weight = float(request.form.get("weight", 0))
+        try:
+            weight = float(request.form.get("weight", 0))
+        except ValueError:
+            flash("Invalid weight value.", "warning")
+            return redirect(url_for("new_project"))
+
         doc = {
-            "owner": session["user_id"],
+            "owner": user_id,
             "name": name,
             "type": animal_type,
             "purchase_date": purchase_date,
@@ -214,8 +318,13 @@ def new_project():
     return render_template("new_project.html")
 
 @app.route("/projects/<pid>/dashboard")
+@safe_route
 def dashboard(pid):
     user_id = session.get("user_id")
+    if not user_id:
+        flash("Please login first.", "warning")
+        return redirect(url_for("login"))
+
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
@@ -234,7 +343,6 @@ def dashboard(pid):
 
     schedule = build_schedule(days, proj["weight"], proj["type"])
 
-    # Ensure keys exist
     proj.setdefault("task_done", {})
     proj.setdefault("task_photo", {})
 
@@ -248,6 +356,7 @@ def dashboard(pid):
     )
 
 @app.route("/projects/<pid>/delete", methods=["POST"])
+@safe_route
 def delete_project(pid):
     user_id = session.get("user_id")
     if not user_id:
@@ -263,17 +372,31 @@ def delete_project(pid):
         for photo_id in photo_list:
             try:
                 fs.delete(ObjectId(photo_id))
-            except Exception:
-                pass
+            except Exception as e:
+                logging.warning(f"Failed to delete photo {photo_id}: {e}")
 
     proj_col.delete_one({"_id": ObjectId(pid)})
     flash("Project and associated photos deleted!", "success")
     return redirect(url_for("projects"))
 
 @app.route("/projects/<pid>/weight", methods=["POST"])
+@safe_route
 def update_weight(pid):
+    user_id = session.get("user_id")
+    if not user_id:
+        flash("Please login first.", "warning")
+        return redirect(url_for("login"))
 
-    weight = float(request.form.get("weight", 0))
+    weight_str = request.form.get("weight")
+    if not weight_str:
+        flash("Weight is required.", "warning")
+        return redirect(url_for("dashboard", pid=pid))
+    try:
+        weight = float(weight_str)
+    except ValueError:
+        flash("Invalid weight value.", "warning")
+        return redirect(url_for("dashboard", pid=pid))
+
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
@@ -287,8 +410,13 @@ def update_weight(pid):
     return redirect(url_for("dashboard", pid=pid))
 
 @app.route("/projects/<pid>/tasks/save", methods=["POST"])
+@safe_route
 def save_tasks(pid):
     user_id = session.get("user_id")
+    if not user_id:
+        flash("Please login first.", "warning")
+        return redirect(url_for("login"))
+
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
@@ -308,8 +436,12 @@ def save_tasks(pid):
     return redirect(url_for("dashboard", pid=pid))
 
 @app.route("/projects/<pid>/photos/upload", methods=["POST"])
+@safe_route
 def upload_photos(pid):
     user_id = session.get("user_id")
+    if not user_id:
+        flash("Please login first.", "warning")
+        return redirect(url_for("login"))
 
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
@@ -333,18 +465,25 @@ def upload_photos(pid):
     saved_files = []
     for file in files:
         if file and allowed_file(file.filename):
-            filename = f"{ObjectId()}_{secure_filename(file.filename)}"
-            fs_id = fs.put(file, filename=filename, content_type=file.content_type)
-            saved_files.append(str(fs_id))
+            try:
+                filename = f"{ObjectId()}_{secure_filename(file.filename)}"
+                fs_id = fs.put(file, filename=filename, content_type=file.content_type)
+                saved_files.append(str(fs_id))
+            except Exception as e:
+                logging.error(f"Failed to save file {file.filename}: {e}")
+                flash(f"Failed to upload file: {file.filename}", "danger")
         else:
             flash(f"Invalid file skipped: {file.filename}", "warning")
 
-    phase_photos.extend(saved_files)
-    proj_col.update_one({"_id": proj["_id"]}, {"$set": {f"task_photo.{phase}": phase_photos}})
-    flash(f"Uploaded {len(saved_files)} photo(s) to phase '{phase}'!", "success")
+    if saved_files:
+        proj_col.update_one({"_id": proj["_id"]}, {"$set": {f"task_photo.{phase}": phase_photos + saved_files}})
+        flash(f"Uploaded {len(saved_files)} photo(s) to phase '{phase}'!", "success")
+    else:
+        flash("No valid photos uploaded.", "warning")
     return redirect(url_for("dashboard", pid=pid))
 
 @app.route("/photos/<photo_id>")
+@safe_route
 def serve_photo(photo_id):
     try:
         file = fs.get(ObjectId(photo_id))
@@ -352,7 +491,15 @@ def serve_photo(photo_id):
     except Exception:
         return "File not found", 404
 
-# Graceful shutdown
+# --- Global error handler as backup ---
+
+@app.errorhandler(500)
+def internal_error(error):
+    logging.error(f"Internal server error: {error}", exc_info=True)
+    flash("An unexpected error occurred. Please try again.", "danger")
+    return redirect(url_for("index"))
+
+# --- Graceful shutdown ---
 
 def shutdown(signum, frame):
     logging.info("Shutting down …")
