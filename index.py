@@ -2,21 +2,28 @@ import os
 import secrets
 import logging
 import datetime
-import signal
 import sys
 import re
+import signal
+
+from dotenv import load_dotenv
+
+from flask import (
+    Flask, jsonify, request, redirect, url_for, flash,
+    render_template, make_response
+)
 from werkzeug.utils import secure_filename
+
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from gridfs import GridFS
+
 import bcrypt
-from dotenv import load_dotenv
-from flask import Flask, jsonify, request, redirect, url_for, flash, render_template, make_response
+
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required,
     get_jwt_identity, set_access_cookies, unset_jwt_cookies, get_jwt
 )
-
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
