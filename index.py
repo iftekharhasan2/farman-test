@@ -191,10 +191,6 @@ def projects():
 
 @app.route("/projects/new", methods=["GET", "POST"])
 def new_project():
-    if "user_id" not in session:
-        flash("Please login first.", "warning")
-        return redirect(url_for("login"))
-
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         animal_type = request.form.get("type")
@@ -220,10 +216,6 @@ def new_project():
 @app.route("/projects/<pid>/dashboard")
 def dashboard(pid):
     user_id = session.get("user_id")
-    if not user_id:
-        flash("Please login first.", "warning")
-        return redirect(url_for("login"))
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": user_id})
     if not proj:
         flash("Project not found!", "danger")
