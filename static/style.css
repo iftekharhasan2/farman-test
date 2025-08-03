@@ -1,0 +1,129 @@
+/* =========================================================
+   GREENISH THEME  –  MOBILE-FIRST
+   ========================================================= */
+:root {
+  /* Greens */
+  --deep-green: #004d40;
+  --mid-green:  #00796b;
+  --light-green: #26a69a;
+  --mint: #a7ffeb;
+
+  /* Greys & white */
+  --white: #ffffff;
+  --grey-50: #fafafa;
+  --grey-900: #212121;
+  --radius: 8px;
+  --shadow: 0 4px 12px rgba(0, 0, 0, .2);
+}
+
+/* ---------------------------------------------------------
+   GLOBAL RESETS
+--------------------------------------------------------- */
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'Noto Sans Bengali', sans-serif;
+  background: linear-gradient(135deg, var(--deep-green) 0%, var(--mid-green) 100%);
+  color: var(--white);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------
+   BACKGROUND PHOTO + OVERLAY  (optional)
+--------------------------------------------------------- */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 77, 64, 0.8), rgba(0, 121, 107, 0.6));
+  z-index: -1;
+}
+
+/* ---------------------------------------------------------
+   UNIVERSAL CARDS (projects, admin, login, etc.)
+--------------------------------------------------------- */
+.card,
+.accordion-item,
+.list-group-item {
+  background: var(--grey-50);
+  color: var(--grey-900);
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: transform .2s;
+}
+.card:hover,
+.accordion-item:hover {
+  transform: translateY(-2px);
+}
+
+/* ---------------------------------------------------------
+   HEADINGS & TEXT
+--------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6,
+.card-title,
+.card-header {
+  color: var(--deep-green);
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------
+   BUTTONS  (Bootstrap overrides)
+--------------------------------------------------------- */
+.btn {
+  border-radius: var(--radius);
+  font-weight: 700;
+}
+.btn-primary   { background: var(--mid-green)  !important; border: none; }
+.btn-success   { background: var(--light-green) !important; border: none; }
+.btn-outline-primary,
+.btn-outline-success {
+  border-color: var(--mid-green);
+  color: var(--mid-green);
+}
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+  background: var(--mid-green);
+  color: var(--white);
+}
+
+/* ---------------------------------------------------------
+   FORM CONTROLS
+--------------------------------------------------------- */
+.form-control,
+.form-select {
+  background: var(--white);
+  color: var(--grey-900);
+  border: 1px solid var(--light-green);
+  border-radius: var(--radius);
+}
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--mid-green);
+  box-shadow: 0 0 0 .2rem rgba(0, 121, 107, .25);
+}
+
+/* ---------------------------------------------------------
+   BADGES / HIGHLIGHTS
+--------------------------------------------------------- */
+.badge-projects {
+  background: var(--light-green) !important;
+  color: var(--white);
+  font-weight: 700;
+  border-radius: var(--radius);
+}
+
+/* ---------------------------------------------------------
+   TASK DONE
+--------------------------------------------------------- */
+.done {
+  text-decoration: line-through;
+  opacity: .6;
+}
+
+/* ---------------------------------------------------------
+   LIGHTBOX TWEAK
+--------------------------------------------------------- */
+.lightboxOverlay { background: rgba(0, 77, 64, .8) !important; }

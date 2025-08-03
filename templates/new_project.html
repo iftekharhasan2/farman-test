@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}নতুন প্রকল্প{% endblock %}
+
+<!-- custom CSS only for new-project -->
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='new_project.css') }}">
+{% endblock %}
+{% block body_class %}new-project-page{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+    <div class="card shadow new-project-card">
+      <div class="card-header new-project-header text-center">
+        <h5>নতুন প্রকল্প</h5>
+      </div>
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label">নাম</label>
+            <input name="name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">প্রকার</label>
+            <select name="type" class="form-select">
+              <option value="goat">ছাগল</option>
+              <option value="cow">গরু</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ক্রয় তারিখ</label>
+            <input type="date" name="purchase_date" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">বর্তমান ওজন (কেজি)</label>
+            <input type="number" step="0.1" name="weight" class="form-control" required>
+          </div>
+          <button class="btn new-project-btn w-100 text-white">তৈরি করুন</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

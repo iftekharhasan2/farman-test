@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}নিবন্ধন{% endblock %}
+
+<!-- custom CSS only for register -->
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='register.css') }}">
+{% endblock %}
+{% block body_class %}register-page{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center vh-100">
+  <div class="card shadow register-card">
+    <div class="card-header register-header text-center">
+      <h5>নতুন অ্যাকাউন্ট</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">নাম</label>
+          <input name="name" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">ফোন নম্বর</label>
+         <input type="tel" name="phone" class="form-control" placeholder="+8801XXXXXXXXX" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">পাসওয়ার্ড</label>
+          <input type="password" name="password" class="form-control" required>
+        </div>
+        <button class="btn register-btn w-100 text-white">নিবন্ধন করুন</button>
+      </form>
+      <div class="text-center mt-2">
+        <small>ইতিমধ্যে অ্যাকাউন্ট আছে? <a href="{{ url_for('login') }}">লগ-ইন করুন</a></small>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

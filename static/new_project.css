@@ -1,0 +1,35 @@
+/* ---------- New-Project page ---------- */
+body.new-project-page {
+  /* keeps global background/overlay */
+}
+
+/* Card styling */
+.new-project-card {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px);
+}
+
+.new-project-header {
+  background: #198754 !important;   /* deep green */
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Inputs */
+.new-project-card .form-control,
+.new-project-card .form-select {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ced4da;
+}
+
+/* Button */
+.new-project-btn {
+  background: #198754;
+  border: none;
+  font-weight: 700;
+}
+.new-project-btn:hover {
+  background: #157347;
+}

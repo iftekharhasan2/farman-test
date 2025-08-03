@@ -1,0 +1,103 @@
+/* ========== Projects page ========== */
+
+ 
+
+/* 2. Green “+” square button */
+.btn-add-project {
+  background: #020202 !important;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.75rem;
+  line-height: 1;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.btn-add-project:hover {
+  background: #157347 !important;
+}
+
+/* 3. Project cards container - flex layout */
+.projects-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center; /* center cards horizontally */
+}
+
+/* 4. Project cards */
+.project-card {
+  background-color: #00251f !important;
+  color: #ffffff !important;
+  border: none;
+  border-radius: 8px;
+  min-height: 200px;
+  padding: 1rem;
+  flex: 1 1 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.project-card h6,
+.project-card small {
+  color: #ffffff !important;
+  margin: 0;
+}
+
+/* 5. Buttons inside project cards */
+.project-card .btn-outline-primary {
+  color: #ffffff;
+  border-color: #ffffff;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+.project-card .btn-outline-primary:hover {
+  background-color: #11948d !important;
+  color: #fff !important;
+}
+
+/* ===== Responsive adjustments ===== */
+
+/* Small devices (phones) */
+@media (max-width: 576px) {
+  .btn-add-project {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+  
+  .badge-projects {
+    font-size: 1rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .project-card {
+    min-height: auto; /* allow height to adapt */
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+}
+
+/* Medium devices (tablets and up) */
+@media (min-width: 577px) and (max-width: 991px) {
+  .project-card {
+    flex: 1 1 calc(50% - 1rem);
+    max-width: calc(50% - 1rem);
+  }
+}
+
+/* Large devices (desktops and up) */
+@media (min-width: 992px) {
+  .project-card {
+    flex: 1 1 calc(33.333% - 1rem);
+    max-width: calc(33.333% - 1rem);
+  }
+}

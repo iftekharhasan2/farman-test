@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}অ্যাডমিন ড্যাশবোর্ড{% endblock %}
+{% block content %}
+
+<!-- Quick jump to per-user drill-down -->
+<div class="admin-card">
+  <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary">
+    👥 সকল ব্যবহারকারীর অগ্রগতি দেখুন
+  </a>
+</div>
+
+<h5 class="mb-3">সব প্রকল্প (সংক্ষিপ্ত)</h5>
+
+{% for p in projects %}
+  <div class="card mb-3 shadow-sm">
+    <div class="card-header">
+      <strong>{{ p.name }} ({{ p.type }})</strong>
+      <span class="badge bg-secondary float-end">{{ p.days }} দিন</span>
+    </div>
+
+    <div class="accordion accordion-flush" id="acc-{{ p._id }}">
+      {% for phase_dict in p.schedule %}
+        {% set phase = phase_dict.phase %}
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed py-2"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#phase-{{ p._id }}-{{ phase }}">
+              {{ phase|title }}
+            </button>
+          </h2>
+          <div id="phase-{{ p._id }}-{{ phase }}" class="accordion-collapse collapse"
+               data-bs-parent="#acc-{{ p._id }}">
+            <div class="accordion-body p-0">
+              <!-- Task list -->
+              <ul class="list-group list-group-flush">
+                {% for t in phase_dict.tasks %}
+                  {% set idx = phase + '.' + loop.index0|string %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center
+                             {% if p.task_done.get(idx) %}list-group-item-success{% endif %}">
+                    <div>
+                      <div class="fw-bold small">{{ t.description }}</div>
+                      <small class="text-muted">{{ t.time_range }}</small>
+                    </div>
+                    <span class="badge bg-{{ 'success' if p.task_done.get(idx) else 'secondary' }}">
+                      {{ '✓' if p.task_done.get(idx) else '✗' }}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+
+              <!-- Photos for this phase (ALWAYS SHOW SECTION EVEN IF NO TASKS DONE) -->
+              {% set photos = p.task_photo.get(phase, []) %}
+              <div class="p-2 border-top bg-light">
+                <small class="text-muted">ছবি ({{ photos|length }})</small>
+                {% if photos %}
+                  <div class="row g-1">
+                    {% for pic in photos %}
+                      <div class="col-3">
+                        <a href="{{ url_for('static', filename='uploads/'+pic) }}" data-lightbox="{{ p._id }}-{{ phase }}">
+                          <img src="{{ url_for('static', filename='uploads/'+pic) }}" class="img-fluid rounded">
+                        </a>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <p class="text-muted small mt-1">এই ধাপে কোনো ছবি আপলোড করা হয়নি।</p>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="card text-center p-4">
+    <p class="text-muted">কোন প্রকল্প নেই</p>
+  </div>
+{% endfor %}
+
+{% endblock %}

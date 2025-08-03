@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="bn">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}গৃহপালিত পশু ব্যবস্থাপনা{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+    <!-- Main site CSS -->
+    <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+
+    <!-- Per-page CSS -->
+    {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}bg-light{% endblock %}">
+
+<!-- Navbar -->
+<nav class="navbar navbar-dark bg-success fixed-top">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Adnan proto v3</span>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#sideMenu"
+      aria-controls="sideMenu"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Off-canvas sidebar -->
+<div
+  class="offcanvas offcanvas-end"
+  tabindex="-1"
+  id="sideMenu"
+  aria-labelledby="sideMenuLabel"
+>
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="sideMenuLabel">মেনু</h5>
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"
+    ></button>
+  </div>
+  <div class="offcanvas-body">
+    <ul class="nav flex-column">
+      {% if session.user_id %}
+        <li><a class="nav-link" href="{{ url_for('projects') }}">প্রকল্প</a></li>
+        {% if session.admin %}
+          <li><a class="nav-link" href="{{ url_for('admin_dashboard') }}">অ্যাডমিন</a></li>
+        {% endif %}
+        <li><a class="nav-link text-danger" href="{{ url_for('logout') }}">লগ-আউট</a></li>
+      {% else %}
+        <li><a class="nav-link" href="{{ url_for('login') }}">লগ-ইন</a></li>
+        <li><a class="nav-link" href="{{ url_for('register') }}">নিবন্ধন</a></li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+
+<!-- Main content container -->
+<div class="container-fluid" style="margin-top: 70px;">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div
+          class="alert alert-{{ category }} alert-dismissible fade show"
+          role="alert"
+        >
+          {{ message }}
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="alert"
+            aria-label="Close"
+          ></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Per-page JavaScript -->
+{% block scripts %}{% endblock %}
+</body>
+</html>

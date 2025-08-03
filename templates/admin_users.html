@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Users – Admin{% endblock %}
+{% block content %}
+<h5>সমস্ত ব্যবহারকারী</h5>
+{% for u in users %}
+  <div class="card mb-2">
+    <div class="card-body d-flex justify-content-between">
+      <div>
+        <strong>{{ u.name }}</strong><br>
+        <small class="text-muted">{{ u.email }}</small>
+      </div>
+      <a href="{{ url_for('admin_user_detail', uid=u._id) }}" class="btn btn-sm btn-outline-primary">দেখুন</a>
+    </div>
+  </div>
+{% endfor %}
+{% endblock %}

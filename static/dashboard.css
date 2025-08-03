@@ -1,0 +1,51 @@
+/* ========== Dashboard-only overrides ========== */
+.dashboard-body {
+  /* keep the global photo + overlay */
+}
+
+/* 1.  Top info card */
+.dashboard-top-card {
+  background: #004d40 !important;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+}
+
+.dashboard-top-card small {
+  color: #ccc !important;
+}
+
+/* 2.  Accordion headers (phase names) */
+.accordion-button {
+  background: #00695c !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+
+.accordion-button:not(.collapsed) {
+  background: #00897b !important;
+}
+
+/* 3.  Task list items */
+.list-group-item {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #000000 !important;
+  border: 1px solid #00897b;
+}
+
+/* 4.  Radio buttons keep Bootstrap colours */
+.btn-outline-success,
+.btn-outline-danger {
+  border-width: 2px;
+}
+
+/* 5.  Photo upload box */
+.dashboard-upload-box {
+  background: #e0f2f1;
+  border-radius: 8px;
+}
+
+.dashboard-upload-box .form-control,
+.dashboard-upload-box .btn {
+  font-size: 0.875rem;
+}

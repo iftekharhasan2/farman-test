@@ -1,0 +1,49 @@
+/* ---------- Register page (scoped) ---------- */
+ 
+body.register-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: -1;
+}
+
+/* Card styling */
+.register-card {
+  width: 22rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(6px);
+}
+
+.register-header {
+  background: #289e63 !important;   /* blue header */
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* Inputs */
+.register-card .form-control {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ced4da;
+}
+
+/* Button */
+.register-btn {
+  background: #000e0c;
+  border: none;
+  font-weight: 700;
+}
+.register-btn:hover {
+  background: #0b5ed7;
+}
+
+/* Link */
+.register-card a {
+  color: #0d6efd;
+  text-decoration: none;
+}
+.register-card a:hover {
+  text-decoration: underline;
+}

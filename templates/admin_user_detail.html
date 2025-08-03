@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ user.name }} – Admin{% endblock %}
+{% block content %}
+<h5>{{ user.name }} ({{ user.email }})</h5>
+
+{% for p in projects %}
+  <div class="card mb-4">
+    <div class="card-header">
+      {{ p.name }} ({{ p.type }}) – দিন {{ p.days }} – ওজন {{ p.weight }} কেজি
+    </div>
+
+    <div class="accordion accordion-flush" id="acc-{{ p._id }}">
+      {% for phase_dict in p.schedule %}
+        {% set phase = phase_dict.phase %}
+        <div class="accordion-item">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed" data-bs-toggle="collapse"
+                    data-bs-target="#phase-{{ p._id }}-{{ phase }}">
+              {{ phase|title }}
+            </button>
+          </h2>
+          <div id="phase-{{ p._id }}-{{ phase }}" class="accordion-collapse collapse"
+               data-bs-parent="#acc-{{ p._id }}">
+            <div class="accordion-body p-0">
+              <!-- Tasks with done / not-done -->
+              <ul class="list-group list-group-flush">
+                {% for t in phase_dict.tasks %}
+                  {% set idx = phase + '.' + loop.index0|string %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center
+                             {% if p.task_done.get(idx) %}list-group-item-success{% endif %}">
+                    <div>
+                      <div>{{ t.description }}</div>
+                      <small class="text-muted">{{ t.time_range }}</small>
+                    </div>
+                    <span class="badge bg-{{ 'success' if p.task_done.get(idx) else 'secondary' }}">
+                      {{ '✓' if p.task_done.get(idx) else '✗' }}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+
+              <!-- Photos for this phase -->
+              {% set photos = p.task_photo.get(phase, []) %}
+              {% if photos %}
+                <div class="p-2 border-top">
+                  <small class="text-muted">ছবি ({{ photos|length }}টি)</small>
+                  <div class="row g-1">
+                    {% for pic in photos %}
+                      <div class="col-3">
+                        <a href="{{ url_for('static', filename='uploads/'+pic) }}" data-lightbox="{{ p._id }}-{{ phase }}">
+                          <img src="{{ url_for('static', filename='uploads/'+pic) }}" class="img-fluid rounded">
+                        </a>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <div class="card text-center p-4">
+    <p class="text-muted">এই ব্যবহারকারীর কোন প্রকল্প নেই</p>
+  </div>
+{% endfor %}
+{% endblock %}
