@@ -19,7 +19,7 @@
 <!-- Navbar -->
 <nav class="navbar navbar-dark bg-success fixed-top">
   <div class="container-fluid">
-    <span class="navbar-brand mb-0 h1">Support Number</span>
+    <span class="navbar-brand mb-0 h1">Adnan proto v3</span>
     <button
       class="navbar-toggler"
       type="button"
@@ -55,7 +55,13 @@
         {% if session.admin %}
           <li><a class="nav-link" href="{{ url_for('admin_dashboard') }}">অ্যাডমিন</a></li>
         {% endif %}
-        <li><a class="nav-link text-danger" href="{{ url_for('logout') }}">লগ-আউট</a></li>
+        <li>
+          <form action="{{ url_for('logout') }}" method="POST" style="display:inline;">
+            <button class="btn btn-outline-danger w-100 mt-3" type="submit">
+              🔒 লগ-আউট
+            </button>
+          </form>
+        </li>
       {% else %}
         <li><a class="nav-link" href="{{ url_for('login') }}">লগ-ইন</a></li>
         <li><a class="nav-link" href="{{ url_for('register') }}">নিবন্ধন</a></li>
