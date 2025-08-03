@@ -4,39 +4,30 @@ import logging
 import datetime
 import signal
 import sys
+import re
 from werkzeug.utils import secure_filename
 from flask import Flask, request, session, redirect, url_for, render_template, flash
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from gridfs import GridFS
 import bcrypt
-import re
 from dotenv import load_dotenv
 
-
-
-
-
-load_dotenv()  # <- This loads .env variables
-
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
-
 app.secret_key = secrets.token_hex(32)
 
 mongo = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
 db = mongo["mydatabase"]
 users_col = db["users"]
 proj_col = db["projects"]
+fs = GridFS(db)
 
-# ---------- file upload ----------
-UPLOAD_FOLDER = os.path.join(os.getcwd(), "static", "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100 MB max per upload
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB
 ALLOWED_EXT = {"png", "jpg", "jpeg", "gif"}
 
- 
 PHONE_RE = re.compile(r'^\+?[0-9]{11,15}$')
 
 def valid_phone(p):
@@ -45,7 +36,6 @@ def valid_phone(p):
 def allowed(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXT
 
-# ---------- helpers ----------
 def days_since(d):
     if isinstance(d, str):
         d = datetime.datetime.fromisoformat(d).date()
@@ -62,24 +52,17 @@ def feed_level(weight, animal):
         elif weight < 20:
             return 200
         return 200
-    else:  # cow
+    else:
         if weight < 150:
             return 1
         elif weight < 280:
             return 2
         return 3
-    
 
 def Grass(weight, animal):
     if animal == "goat":
-        if weight < 15:
-            return 2.5
-        elif weight < 18:
-            return 2.5
-        elif weight < 21:
-            return 2.5
         return 2.5
-    else:  # cow
+    else:
         if weight < 150:
             return 5
         elif weight < 250:
@@ -89,8 +72,6 @@ def Grass(weight, animal):
         elif weight < 500:
             return 17.5
         return 17.5
-        
-    
 
 def build_schedule(day, weight, animal):
     if animal == "cow":
@@ -171,7 +152,6 @@ def build_schedule(day, weight, animal):
             }
         ]
 
-# ---------- routes ----------
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -182,7 +162,6 @@ def login():
         phone = request.form["phone"].strip()
         pwd = request.form["password"]
         user = users_col.find_one({"phone": phone})
-
         if user and bcrypt.checkpw(pwd.encode(), user["password"]):
             session["user_id"] = str(user["_id"])
             if user.get("role") == "admin":
@@ -190,7 +169,6 @@ def login():
                 return redirect(url_for("admin_dashboard"))
             flash("স্বাগতম!", "success")
             return redirect(url_for("projects"))
-
         flash("ফোন নম্বর অথবা পাসওয়ার্ড ভুল!", "danger")
     return render_template("login.html")
 
@@ -199,15 +177,12 @@ def register():
     if request.method == "POST":
         name = request.form["name"].strip()
         phone = request.form["phone"].strip()
-
         if not valid_phone(phone):
             flash("সঠিক ফোন নম্বর দিন!", "warning")
             return redirect(url_for("register"))
-
         if users_col.find_one({"phone": phone}):
             flash("এই ফোন নম্বর আগে ব্যবহার হেছে!", "warning")
             return redirect(url_for("register"))
-
         pw_hash = bcrypt.hashpw(request.form["password"].encode(), bcrypt.gensalt())
         user_id = users_col.insert_one({"name": name, "phone": phone, "password": pw_hash}).inserted_id
         session["user_id"] = str(user_id)
@@ -215,13 +190,10 @@ def register():
         return redirect(url_for("projects"))
     return render_template("register.html")
 
-
-# ---------- ADMIN ----------
 @app.route("/admin/dashboard", methods=["GET", "POST"])
 def admin_dashboard():
     if not session.get("admin"):
         return render_template("login.html")
-
     projects = list(proj_col.find())
     for p in projects:
         p["days"] = days_since(p["purchase_date"])
@@ -236,24 +208,19 @@ def admin_logout():
 
 @app.route("/admin/users")
 def admin_users():
-    """Admin: list every user with drill-down to projects."""
     if not session.get("admin"):
         return redirect(url_for("login"))
-
     users = list(users_col.find({}, {"password": 0}))
     return render_template("admin_users.html", users=users)
 
 @app.route("/admin/user/<uid>")
 def admin_user_detail(uid):
-    """Admin: see all projects & tasks for a given user."""
     if not session.get("admin"):
         return redirect(url_for("login"))
-
     user = users_col.find_one({"_id": ObjectId(uid)})
     if not user:
         flash("User not found", "danger")
         return redirect(url_for("admin_users"))
-
     projects = list(proj_col.find({"owner": uid}))
     for p in projects:
         p["days"] = days_since(p["purchase_date"])
@@ -266,20 +233,11 @@ def logout():
     flash("Logged out!", "info")
     return redirect(url_for("login"))
 
-@app.route("/wait")
-def wait():
-    return render_template("wait.html")
-
 @app.route("/projects")
 def projects():
     projs = list(proj_col.find({"owner": session["user_id"]}))
     days_map = {str(p["_id"]): days_since(p["purchase_date"]) for p in projs}
-    return render_template(
-        "projects.html",
-        projects=projs,
-        days=days_map,
-        str=str        # <-- expose Python str to Jinja
-    )
+    return render_template("projects.html", projects=projs, days=days_map, str=str)
 
 @app.route("/projects/new", methods=["GET", "POST"])
 def new_project():
@@ -293,7 +251,7 @@ def new_project():
             "feed_level": feed_level(float(request.form["weight"]), request.form["type"]),
             "target": 24 if request.form["type"] == "goat" else 350,
             "check_period": 30 if request.form["type"] == "cow" else 1,
-            "task_done": {},     # initialize empty dicts for tasks/photos
+            "task_done": {},
             "task_photo": {},
          }
          proj_col.insert_one(doc)
@@ -303,7 +261,6 @@ def new_project():
 
 @app.route("/projects/<pid>/dashboard")
 def dashboard(pid):
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
     if not proj:
         flash("Not found!", "danger")
@@ -316,42 +273,31 @@ def dashboard(pid):
 
     if days % period == 0 and days != 0 and proj.get("last_check") != days:
         new_level = feed_level(proj["weight"] + (30 if proj["type"] == "cow" else 0), proj["type"])
-        proj_col.update_one(
-            {"_id": proj["_id"]},
-            {"$set": {"feed_level": new_level, "last_check": days}}
-        )
+        proj_col.update_one({"_id": proj["_id"]}, {"$set": {"feed_level": new_level, "last_check": days}})
         proj["feed_level"] = new_level
         proj["last_check"] = days
 
     schedule = build_schedule(days, proj["weight"], proj["type"])
-
     if "task_done" not in proj:
         proj["task_done"] = {}
     if "task_photo" not in proj:
         proj["task_photo"] = {}
 
-    return render_template(
-        "dashboard02.html",
-        project=proj,
-        schedule=schedule,
-        days=days,
-        show_weight_input=show_weight,
-        days_left=days_left
-    )
+    return render_template("dashboard02.html", project=proj, schedule=schedule, days=days, show_weight_input=show_weight, days_left=days_left)
 
 @app.route("/projects/<pid>/delete", methods=["POST"])
 def delete_project(pid):
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
 
-    for task_idx, photos in proj.get("task_photo", {}).items():
-        for photo in photos:
-            photo_path = os.path.join(app.config["UPLOAD_FOLDER"], photo)
-            if os.path.exists(photo_path):
-                os.remove(photo_path)
+    for task_idx, photo_ids in proj.get("task_photo", {}).items():
+        for photo_id in photo_ids:
+            try:
+                fs.delete(ObjectId(photo_id))
+            except:
+                pass  # photo might already be missing
 
     proj_col.delete_one({"_id": ObjectId(pid)})
     flash("Project and associated photos deleted!", "success")
@@ -364,32 +310,21 @@ def update_weight(pid):
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
-
-    proj_col.update_one(
-        {"_id": ObjectId(pid), "owner": session["user_id"]},
-        {"$set": {"weight": weight}}
-    )
+    proj_col.update_one({"_id": ObjectId(pid)}, {"$set": {"weight": weight}})
     new_level = feed_level(weight, proj["type"])
-    proj_col.update_one(
-        {"_id": ObjectId(pid), "owner": session["user_id"]},
-        {"$set": {"feed_level": new_level}}
-    )
+    proj_col.update_one({"_id": ObjectId(pid)}, {"$set": {"feed_level": new_level}})
     flash("Weight & feed level updated!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
 @app.route("/projects/<pid>/tasks/save", methods=["POST"])
 def save_tasks(pid):
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
 
     done_dict = {}
-    schedule = build_schedule(days_since(proj["purchase_date"]),
-                              proj.get("weight", 0), proj["type"])
-
-    # read radios
+    schedule = build_schedule(days_since(proj["purchase_date"]), proj.get("weight", 0), proj["type"])
     for phase_dict in schedule:
         phase = phase_dict["phase"]
         for i in range(len(phase_dict["tasks"])):
@@ -400,10 +335,8 @@ def save_tasks(pid):
     flash("Tasks updated!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
-
 @app.route("/projects/<pid>/photos/upload", methods=["POST"])
 def upload_photos(pid):
-
     proj = proj_col.find_one({"_id": ObjectId(pid), "owner": session["user_id"]})
     if not proj:
         flash("Project not found!", "danger")
@@ -414,12 +347,11 @@ def upload_photos(pid):
         flash("Phase not specified.", "warning")
         return redirect(url_for("dashboard", pid=pid))
 
-    files = request.files.getlist("photos")  # get ALL files
+    files = request.files.getlist("photos")
     if not files or all(f.filename == '' for f in files):
         flash("No photos selected.", "warning")
         return redirect(url_for("dashboard", pid=pid))
 
-    # existing list for this phase
     phase_photos = proj.get("task_photo", {}).get(phase, [])
     if isinstance(phase_photos, str):
         phase_photos = [phase_photos]
@@ -428,23 +360,27 @@ def upload_photos(pid):
     for file in files:
         if file and allowed(file.filename):
             filename = f"{ObjectId()}_{secure_filename(file.filename)}"
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            saved.append(filename)
+            fs_id = fs.put(file, filename=filename, content_type=file.content_type)
+            saved.append(str(fs_id))
         else:
             flash(f"Invalid file skipped: {file.filename}", "warning")
 
     phase_photos.extend(saved)
-    proj_col.update_one(
-        {"_id": proj["_id"]},
-        {"$set": {f"task_photo.{phase}": phase_photos}}
-    )
+    proj_col.update_one({"_id": proj["_id"]}, {"$set": {f"task_photo.{phase}": phase_photos}})
     flash(f"Uploaded {len(saved)} photo(s) to phase '{phase}'!", "success")
     return redirect(url_for("dashboard", pid=pid))
 
-asgi_app = app 
+@app.route("/photos/<photo_id>")
+def serve_photo(photo_id):
+    try:
+        file = fs.get(ObjectId(photo_id))
+        return app.response_class(file.read(), mimetype=file.content_type)
+    except:
+        return "File not found", 404
 
+# For ASGI deployments (e.g. Vercel)
+asgi_app = app
 
-# ---------- shutdown ----------
 def shutdown(signum, frame):
     logging.info("Shutting down …")
     sys.exit(0)
@@ -452,4 +388,4 @@ def shutdown(signum, frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, shutdown)
     logging.info("Starting app on http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)     
+    app.run(host="0.0.0.0", port=5000, debug=True)
