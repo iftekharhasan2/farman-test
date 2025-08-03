@@ -337,9 +337,10 @@ def save_tasks(pid):
     if not proj:
         flash("Project not found!", "danger")
         return redirect(url_for("projects"))
-
+    
     done_dict = {}
     schedule = build_schedule(days_since(proj["purchase_date"]), proj.get("weight", 0), proj["type"])
+    
     for phase_dict in schedule:
         phase = phase_dict["phase"]
         for i in range(len(phase_dict["tasks"])):
@@ -369,6 +370,13 @@ def upload_photos(pid):
     if not files or all(f.filename == '' for f in files):
         flash("No photos selected.", "warning")
         return redirect(url_for("dashboard", pid=pid))
+    
+    today = datetime.date.today().isoformat()          # ➜ date key
+
+    # grab current list: task_photo[date][phase] = [...]
+    today_photos = proj.get("task_photo", {}).get(today, {})
+    phase_photos = today_photos.get(phase, [])
+
 
     phase_photos = proj.get("task_photo", {}).get(phase, [])
     if isinstance(phase_photos, str):
