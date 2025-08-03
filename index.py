@@ -271,7 +271,7 @@ def dashboard(pid):
     days_left = (period - (days % period)) % period
 
     if days % period == 0 and days != 0 and proj.get("last_check") != days:
-        new_level = feed_level(proj["weight"] + (30 if proj["type"] == "cow" else 0), proj["type"])
+        new_level = feed_level(proj["weight"] + (30 if proj["type"] == "cow" else 30), proj["type"])
         proj_col.update_one({"_id": proj["_id"]}, {"$set": {"feed_level": new_level, "last_check": days}})
         proj["feed_level"] = new_level
         proj["last_check"] = days
