@@ -11,9 +11,7 @@ from bson.objectid import ObjectId
 from gridfs import GridFS
 import bcrypt
 from dotenv import load_dotenv
-from flask import session, request, redirect, url_for, flash, make_response, render_template
-from datetime import datetime
-
+from flask import Flask, jsonify, request, redirect, url_for, flash, render_template, make_response
 from flask_jwt_extended import (
     JWTManager, create_access_token, jwt_required,
     get_jwt_identity, set_access_cookies, unset_jwt_cookies, get_jwt
@@ -211,10 +209,7 @@ def login():
 
             access_token = create_access_token(identity=user_id, additional_claims={"role": role})
 
-            # Redirect to stored target, default to 'projects'
-            redirect_target = session.pop("post_login_redirect", url_for("projects"))
-
-            resp = make_response(redirect(redirect_target))
+            resp = make_response(redirect(url_for("projects")))
             set_access_cookies(resp, access_token)
 
             flash("স্বাগতম!", "success")
@@ -242,30 +237,16 @@ def projects():
 @app.route("/projects/new", methods=["GET", "POST"])
 @jwt_required()
 def new_project():
-    # Check if user has just re-logged in
-    if session.pop("relogin_required", True):
-        # First access, force logout and redirect to login
-        session["post_login_redirect"] = request.path  # save path to redirect after login
-        session["relogin_required"] = False  # avoid repeated logout loop
-
-        response = make_response(redirect(url_for("login")))
-        unset_jwt_cookies(response)
-        flash("Please login again to continue.", "warning")
-        return response
-
     if request.method == "POST":
         user_id = get_jwt_identity()
-        weight = float(request.form["weight"])
-        animal_type = request.form["type"]
-
         doc = {
             "owner": user_id,
             "name": request.form["name"].strip(),
-            "type": animal_type,
+            "type": request.form["type"],
             "purchase_date": request.form["purchase_date"],
-            "weight": weight,
-            "feed_level": feed_level(weight, animal_type),
-            "target": weight + (10 if animal_type == "goat" else 120),
+            "weight": float(request.form["weight"]),
+            "feed_level": feed_level(float(request.form["weight"]), request.form["type"]),
+            "target": float(request.form["weight"])+10 if request.form["type"] == "goat" else float(request.form["weight"])+120,
             "check_period": 30,
             "task_done": {},
             "task_photo": {},
@@ -273,7 +254,6 @@ def new_project():
         proj_col.insert_one(doc)
         flash("Project created!", "success")
         return redirect(url_for("projects"))
-
     return render_template("new_project.html")
 
 @app.route("/projects/<pid>/dashboard")
