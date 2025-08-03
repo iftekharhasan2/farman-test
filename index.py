@@ -123,7 +123,7 @@ def build_schedule(day, weight, animal):
     elif animal == "goat":
         return [
             {
-                "phase": "morning",
+                "phase": "সকাল",
                 "tasks": [
                     {"description": "ছাগলের ঘর পরিষ্কার করুন, চারি পরিষ্কার করুন, ছাগলের পা হাঁটু পর্যন্ত ধুয়ে দিন", "time_range": "সকাল ৬ঃ০০ - ৭ঃ০০"},
                     {"description": f"সবুজ ঘাস খাওয়ান {Grass(weight, animal)} কেজি", "time_range": "সকাল ৭ঃ০০ - ৮ঃ০০"},
@@ -134,7 +134,7 @@ def build_schedule(day, weight, animal):
                 ]
             },
             {
-                "phase": "midday",
+                "phase": "দুপুর",
                 "tasks": [
                     {"description": "চারিতে পরিষ্কার পানি দিন এবং ছাগলকে বিশ্রাম নিতে দিন", "time_range": "দুপুর ১ঃ০০ - ৩ঃ০০"},
                     {"description": f"সবুজ ঘাস খাওয়ান ({Grass(weight, animal)} কেজি", "time_range": "দুপুর ৩ঃ০০ - ৪ঃ০০"},
@@ -144,7 +144,7 @@ def build_schedule(day, weight, animal):
                 ]
             },
             {
-                "phase": "evening",
+                "phase": "বিকাল",
                 "tasks": [
                     {"description": "ছাগলের ঘর পরিষ্কার করুন, রাতের জন্য কয়েল জ্বালিয়ে দিন, চারি পরিষ্কার করে পানি দিন", "time_range": "সন্ধ্যা ৭ঃ০০ - ৮ঃ০০"},
                 ]
