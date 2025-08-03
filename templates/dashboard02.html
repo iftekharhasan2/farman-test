@@ -65,21 +65,19 @@
             <!-- Task list -->
             <ul class="list-group list-group-flush">
               {% for t in phase_dict.tasks %}
-                {% set idx = phase + '.' + loop.index0|string %}
+                {% set key = phase + '.' + loop.index0|string %}
+                {% set done_flag = today_done.get(key, False) %}
                 <li class="list-group-item d-flex justify-content-between align-items-start">
                   <div>
                     <div class="fw-bold">{{ t.description }}</div>
                     <small class="text-muted">{{ t.time_range }}</small>
                   </div>
                   <div class="btn-group btn-group-sm" role="group">
-                    <input type="radio" class="d-none" name="done_{{ idx }}" value="" checked>
-                    <input type="radio" class="btn-check" name="done_{{ idx }}" id="yes_{{ idx }}"
-                           value="yes" {% if project.task_done.get(idx) %}checked{% endif %}>
-                    <label class="btn btn-outline-success btn-sm" for="yes_{{ idx }}">✓</label>
-
-                    <input type="radio" class="btn-check" name="done_{{ idx }}" id="no_{{ idx }}"
-                           value="no" {% if not project.task_done.get(idx, True) %}checked{% endif %}>
-                    <label class="btn btn-outline-danger btn-sm" for="no_{{ idx }}">✗</label>
+                    <input type="radio" class="d-none" name="done_{{ key }}" value="" {{ 'checked' if not done_flag else '' }}>
+                    <input type="radio" class="btn-check" name="done_{{ key }}" id="yes_{{ key }}" value="yes" {{ 'checked' if done_flag else '' }}>
+                    <label class="btn btn-outline-success btn-sm" for="yes_{{ key }}">✓</label>
+                    <input type="radio" class="btn-check" name="done_{{ key }}" id="no_{{ key }}" value="no" {{ 'checked' if not done_flag else '' }}>
+                    <label class="btn btn-outline-danger btn-sm" for="no_{{ key }}">✗</label>
                   </div>
                 </li>
               {% endfor %}
@@ -95,13 +93,15 @@
               </div>
 
               <!-- existing photos -->
-              {% set photos = project.task_photo.get(phase, []) %}
+              {% set photos = today_photos.get(phase, []) %}
               {% if photos %}
                 <div class="row g-1 mt-2 phase-preview">
                   {% for pic in photos %}
                     <div class="col-4">
-                      <a href="{{ url_for('static', filename='uploads/' + pic) }}" data-lightbox="{{ phase }}">
-                        <img src="{{ url_for('static', filename='uploads/' + pic) }}" class="img-fluid rounded">
+                      <a href="{{ url_for('static', filename='uploads/' + pic) }}"
+                         data-lightbox="{{ today }}-{{ phase }}">
+                        <img src="{{ url_for('static', filename='uploads/' + pic) }}"
+                             class="img-fluid rounded">
                       </a>
                     </div>
                   {% endfor %}
@@ -136,9 +136,6 @@ document.addEventListener('click', e => {
 
   fetch("{{ url_for('upload_photos', pid=project._id) }}", {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem('access_token')}`
-    },
     body: fd
   })
   .then(r => {
